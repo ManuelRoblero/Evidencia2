@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Filament\Resources\Users\Schemas;
+
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+
+class UserForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Datos Personales')->schema([
+                    TextInput::make('name')
+                        ->label('Nombre(s)')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('last_name')
+                        ->label('Apellidos')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('email')
+                        ->email()
+                        ->required()
+                        ->rules(fn (string $operation): array => $operation === 'create'
+                            ? [Rule::unique('users', 'email')]
+                            : [])
+                        ->maxLength(255),
+                    TextInput::make('phone')
+                        ->label('Teléfono')
+                        ->tel()
+                        ->required()
+                        ->maxLength(10),
+                    TextInput::make('password')
+                        ->label('Nueva contraseña')
+                        ->password()
+                        ->revealable()
+                        ->helperText('Al editar, déjala vacía para no cambiar la contraseña actual.')
+                        ->maxLength(255)
+                        ->dehydrated(fn (?string $state): bool => filled($state))
+                        ->rules(['nullable', 'string', 'min:8'])
+                        ->hiddenOn('create'),
+                ])->columns(2),
+
+                Section::make('Accesos y Permisos')->schema([
+                    Select::make('roles')
+                        ->label('Perfil / Rol')
+                        ->multiple()
+                        ->relationship('roles', 'name')
+                        ->preload()
+                        ->required(),
+
+                    Select::make('tenants')
+                        ->label('Sucursales Asignadas')
+                        ->multiple()
+                        ->relationship('tenants', 'name')
+                        ->preload()
+                        ->helperText('Los Administradores no necesitan estar asignados a una sucursal, tienen acceso global.'),
+                ])->columns(2),
+            ]);
+    }
+}
